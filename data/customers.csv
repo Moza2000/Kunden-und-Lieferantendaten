@@ -1,0 +1,5 @@
+Debitor;DUNS Nummer;Name1;Straße;Hausnummer;Ort;Land;Umsatzsteuer-Id.Nr;Kreditor;LöSp;Kundensegment;B2C;Bank
+1000001;123456789;Müller Maschinenbau GmbH;Hauptstraße;12A;Berlin;DE;DE123456789;200001; ;HC01; ;DE0012345678
+1000002;987654321;Acme Industrial SA;Rue de Lyon;5;Paris;FR;FR998877665;200003;X;ZODR; ;FR8899001122
+1000003;;Privatkunde Max Mustermann;Musterweg;1;Hamburg;DE;;200010; ;HC01;X;
+1000004;222333444;Nordic Parts AB;Hamngatan;7;Stockholm;SE;SE556677889901;200004; ;ZKZG; ;SE1029384756
