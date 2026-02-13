@@ -1,0 +1,61 @@
+input:
+  customers_csv: data/customers.csv
+  vendors_csv: data/vendors.csv
+  sep: ";"
+  encoding: "utf-8"
+
+output:
+  directory: output
+  write_clean_csv: true
+
+matching:
+  threshold: 0.30
+  unicode_normalization: true
+  missing_policy: "one_side_missing_zero"  # one_side_missing_zero | skip
+  link_field_mode: "weighted"              # weighted | override
+
+filters:
+  customer_allowed_segments: [HC01, ZODR, ZKZG, ZCPL]
+  vendor_allowed_segments: []  # Keine Segmentfilterung für Lieferanten (Spalte nicht vorhanden)
+  exclude_b2c: true
+
+scoring_weights:
+  name: 1.0
+  address: 1.0
+  city: 1.0
+  country: 1.0
+  vat_id: 1.5
+  duns: 1.5
+  link_fields: 2.0
+  deletion_flag: 0.5
+  bank: 1.0
+
+columns:
+  customers:
+    customer_id: Debitor
+    vendor_id_link: Kreditor
+    name: Name1
+    street: Straße
+    house_no: Hausnummer
+    city: Ort
+    country: Land
+    vat_id: Umsatzsteuer-Id.Nr
+    duns: DUNS Nummer
+    deletion_flag: LöSp
+    segment: Kundensegment
+    b2c_flag: B2C
+    bank: Bank
+  vendors:
+    vendor_id: Kreditor
+    customer_id_link: Debitor
+    name: Name
+    street: Straße
+    house_no: Hausnummer
+    city: Ort
+    country: Land
+    vat_id: Umsatzsteuer-Id.Nr
+    duns: DUNS Nummer
+    deletion_flag: LöVm
+    segment: ""  # Optional: Spalte nicht in CSV vorhanden
+    credit_bureau_no: Kreditauskunftsnummer
+    bank: ""  # Optional: Spalte nicht in CSV vorhanden

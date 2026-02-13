@@ -61,8 +61,9 @@ def read_sources(cfg: MatchConfig) -> Tuple[pd.DataFrame, pd.DataFrame]:
     return customers.fillna(""), vendors.fillna("")
 
 
-def validate_columns(df: pd.DataFrame, mapping: Dict[str, str], label: str) -> None:
-    required = set(mapping.values())
+def validate_columns(df: pd.DataFrame, mapping: Dict[str, str], label: str, optional: List[str] = None) -> None:
+    optional = optional or []
+    required = set(v for k, v in mapping.items() if k not in optional and v)
     missing = sorted(col for col in required if col not in df.columns)
     if missing:
         raise ValueError(f"Fehlende Spalten in {label}: {missing}")
@@ -96,7 +97,7 @@ def prepare_customers(df: pd.DataFrame, cfg: MatchConfig) -> pd.DataFrame:
 
 def prepare_vendors(df: pd.DataFrame, cfg: MatchConfig) -> pd.DataFrame:
     m = cfg.raw["columns"]["vendors"]
-    validate_columns(df, m, "vendors")
+    validate_columns(df, m, "vendors", optional=["segment", "bank"])
     unicode_norm = bool(cfg.raw["matching"].get("unicode_normalization", True))
 
     out = pd.DataFrame()
@@ -111,9 +112,13 @@ def prepare_vendors(df: pd.DataFrame, cfg: MatchConfig) -> pd.DataFrame:
     out["vat_id"] = df[m["vat_id"]].map(lambda x: _norm_alnum(x, unicode_norm))
     out["duns"] = df[m["duns"]].map(_norm_digits)
     out["deletion_flag"] = df[m["deletion_flag"]].map(_to_bool_flag)
-    out["segment"] = df[m["segment"]].map(lambda x: _norm_text(x, False))
+    # Segment ist optional - wenn nicht vorhanden, alle auf "ALL" setzen
+    if m.get("segment") and m["segment"] in df.columns:
+        out["segment"] = df[m["segment"]].map(lambda x: _norm_text(x, False))
+    else:
+        out["segment"] = "ALL"
     out["credit_bureau_no"] = df[m["credit_bureau_no"]].map(lambda x: _norm_alnum(x, unicode_norm))
-    out["bank"] = df[m.get("bank", "")].map(lambda x: _norm_alnum(x, unicode_norm)) if m.get("bank") else ""
+    out["bank"] = df[m.get("bank", "")].map(lambda x: _norm_alnum(x, unicode_norm)) if m.get("bank") and m["bank"] in df.columns else ""
 
     out["duns"] = out["duns"].map(lambda x: x if len(x) == 9 else "")
     out["supplier_cluster_id"] = out["credit_bureau_no"].where(out["credit_bureau_no"] != "", "NO_CREFO")
@@ -125,7 +130,12 @@ def apply_filters(customers: pd.DataFrame, vendors: pd.DataFrame, cfg: MatchConf
     customers_f = customers[customers["segment"].isin([s.upper() for s in f["customer_allowed_segments"]])].copy()
     if bool(f.get("exclude_b2c", True)):
         customers_f = customers_f[~customers_f["b2c_flag"]]
-    vendors_f = vendors[vendors["segment"].isin([s.upper() for s in f["vendor_allowed_segments"]])].copy()
+    # Vendor segment filter nur anwenden wenn Liste nicht leer
+    vendor_segments = f.get("vendor_allowed_segments", [])
+    if vendor_segments:
+        vendors_f = vendors[vendors["segment"].isin([s.upper() for s in vendor_segments])].copy()
+    else:
+        vendors_f = vendors.copy()
     return customers_f.reset_index(drop=True), vendors_f.reset_index(drop=True)
 
 
